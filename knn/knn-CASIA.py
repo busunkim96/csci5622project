@@ -12,7 +12,7 @@ from sklearn.neighbors import BallTree, NearestNeighbors
 from skimage.color import rgb2gray
 from skimage import io
 
-import pandas as pd
+from sklearn.model_selection import KFold, StratifiedKFold
 
 class Numbers:
     """
@@ -40,17 +40,6 @@ class Numbers:
         train_set, test_set = cPickle.load(f)
         self.train_x, self.train_y = train_set
         self.test_x, self.test_y = test_set
-
-        # XXX
-        # XXX use validation, not test set
-        # XXX
-        # now performance sucks because the data isn't shuffled. Need to fix this
-        self.valid_x = self.train_x[-500:]
-        self.valid_y = self.train_y[-500:]
-        self.train_x = self.train_x[:-500]
-        self.train_y = self.train_y[:-500]
-        self.test_x = self.valid_x
-        self.test_y = self.valid_y
 
         x = numpy.array(self.test_x)
         nsamples, nx, ny = x.shape
@@ -222,7 +211,8 @@ class Knearest:
                 d[yy][self.classify(xx)] = 1
             data_index += 1
             if data_index % 100 == 0:
-                print("%i/%i for confusion matrix" % (data_index, len(test_x)))
+                #print("%i/%i for confusion matrix" % (data_index, len(test_x)))
+                pass
         return d
 
     @staticmethod
@@ -244,6 +234,23 @@ class Knearest:
         else:
             return 0.0
 
+def performKFold(data):
+    kf = StratifiedKFold(n_splits=5, shuffle=True)
+    kf.get_n_splits(data.train_x)
+    correctpc = []
+
+    for train_index, test_index in kf.split(data.train_x, data.train_y):
+        # ignore --k argument from command line
+        knn = Knearest(data.train_x[train_index], data.train_y[train_index], args.k)
+
+        confusion = knn.confusion_matrix(data.train_x[test_index], data.train_y[test_index])
+
+        correct = knn.accuracy(confusion)
+        correctpc.append(correct)
+        print "% right: ", correct
+
+    print "overall %: ", numpy.mean(correctpc)
+        
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='KNN classifier options')
@@ -251,24 +258,31 @@ if __name__ == "__main__":
                         help="Number of nearest points to use")
     parser.add_argument('--limit', type=int, default=-1,
                         help="Restrict training to this many examples")
+    parser.add_argument("--kfold", help="use k-folds instead of making predictions",
+                        type=bool, default=False, required=False)
     args = parser.parse_args()
 
     data = Numbers("../casia.pkl.gz")
+    knn = None
 
-    # You should not have to modify any of this code
+    if args.kfold:
+        data = performKFold(data)
 
-    if args.limit > 0:
-        print("Data limit: %i" % args.limit)
-        knn = Knearest(data.train_x[:args.limit], data.train_y[:args.limit],
-                       args.k)
     else:
-        knn = Knearest(data.train_x, data.train_y, args.k)
-    print("Done loading data")
+        print "!!! USING TEST DATA !!!"
+        if args.limit > 0:
+            print("Data limit: %i" % args.limit)
+            knn = Knearest(data.train_x[:args.limit], data.train_y[:args.limit],
+                args.k)
+        else:
+            knn = Knearest(data.train_x, data.train_y, args.k)
+ 
+        print("Done loading data")
 
-    confusion = knn.confusion_matrix(data.test_x, data.test_y)
-    print("\t" + "\t".join(str(x) for x in xrange(11)))
-    print("".join(["-"] * 90))
-    for ii in xrange(11):
-        print("%i:\t" % ii + "\t".join(str(confusion[ii].get(x, 0))
+        confusion = knn.confusion_matrix(data.test_x, data.test_y)
+        print("\t" + "\t".join(str(x) for x in xrange(11)))
+        print("".join(["-"] * 90))
+        for ii in xrange(11):
+            print("%i:\t" % ii + "\t".join(str(confusion[ii].get(x, 0))
                                        for x in xrange(11)))
-    print("Accuracy: %f" % knn.accuracy(confusion))
+        print("Accuracy: %f" % knn.accuracy(confusion))
