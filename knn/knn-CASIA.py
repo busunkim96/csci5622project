@@ -8,7 +8,7 @@ import sys
 import random
 import numpy
 from numpy import median
-from sklearn.neighbors import BallTree, NearestNeighbors
+from sklearn.neighbors import BallTree, NearestNeighbors, KDTree
 from skimage.color import rgb2gray
 from skimage import io
 
@@ -19,23 +19,24 @@ class Numbers:
     Class to store CASIA data
     """
 
-    def __init__(self, location):
+    def __init__(self, location, MNIST=False):
         # You shouldn't have to modify this class, but you can if
         # you'd like.
 
         import cPickle, gzip
 
-        '''
-        # MNIST set
-        # Load the dataset
-        f = gzip.open(location, 'rb')
-        train_set, valid_set, test_set = cPickle.load(f)
+        if MNIST:
+            # MNIST set
+            # Load the dataset
+            f = gzip.open(location, 'rb')
+            train_set, valid_set, test_set = cPickle.load(f)
 
-        self.train_x, self.train_y = train_set
-        self.test_x, self.test_y = valid_set
-        f.close()
-        '''
+            self.train_x, self.train_y = train_set
+            self.test_x, self.test_y = valid_set
+            f.close()
+            return
 
+        # CASIA otherwise
         f = gzip.open(location, 'rb')
         train_set, test_set = cPickle.load(f)
         self.train_x, self.train_y = train_set
@@ -100,6 +101,8 @@ class Knearest:
 
         # XXX TODO tuning parameters
         self._kdtree = BallTree(x)
+        # XXX try increasing p
+        #self._kdtree = BallTree(x, metric="minkowski", p=3) # slower but works good.
         self._y = y
         self._k = k
 
@@ -186,7 +189,9 @@ class Knearest:
         # Again, the current return value is a placeholder 
         # and definitely needs to be changed. 
 
+        # k == 3 seems to be good
         dist, ind = self._kdtree.query([example], k=self._k) 
+        #dist, ind = self._kdtree.query_radius([example], r=self._k, return_distance=True) 
 
         maj = self.majority(ind[0])
         return maj
@@ -234,14 +239,17 @@ class Knearest:
         else:
             return 0.0
 
-def performKFold(data):
+def performKFold(data, k, limit=None):
     kf = StratifiedKFold(n_splits=5, shuffle=True)
     kf.get_n_splits(data.train_x)
     correctpc = []
 
     for train_index, test_index in kf.split(data.train_x, data.train_y):
-        # ignore --k argument from command line
-        knn = Knearest(data.train_x[train_index], data.train_y[train_index], args.k)
+        knn = None
+        if limit > 0:
+            knn = Knearest(data.train_x[:args.limit], data.train_y[:args.limit], k)
+        else:
+            knn = Knearest(data.train_x[train_index], data.train_y[train_index], k)
 
         confusion = knn.confusion_matrix(data.train_x[test_index], data.train_y[test_index])
 
@@ -260,13 +268,21 @@ if __name__ == "__main__":
                         help="Restrict training to this many examples")
     parser.add_argument("--kfold", help="use k-folds instead of making predictions",
                         type=bool, default=False, required=False)
+    parser.add_argument("--MNIST", help="use MNIST set", dest="MNIST", action="store_true")
+
     args = parser.parse_args()
 
-    data = Numbers("../casia.pkl.gz")
+    data = None
+    if args.MNIST:
+        print "Using MNIST data"
+        data = Numbers("../mnist.pkl.gz", MNIST=True)
+    else:
+        print "Using CASIA data"
+        data = Numbers("../casia.pkl.gz")
     knn = None
 
     if args.kfold:
-        data = performKFold(data)
+        data = performKFold(data, args.k, args.limit)
 
     else:
         print "!!! USING TEST DATA !!!"
@@ -280,9 +296,12 @@ if __name__ == "__main__":
         print("Done loading data")
 
         confusion = knn.confusion_matrix(data.test_x, data.test_y)
-        print("\t" + "\t".join(str(x) for x in xrange(11)))
+        uIndex = 11
+        if args.MNIST:
+            uIndex = 10
+        print("\t" + "\t".join(str(x) for x in xrange(uIndex)))
         print("".join(["-"] * 90))
-        for ii in xrange(11):
+        for ii in xrange(uIndex):
             print("%i:\t" % ii + "\t".join(str(confusion[ii].get(x, 0))
-                                       for x in xrange(11)))
+                                       for x in xrange(uIndex)))
         print("Accuracy: %f" % knn.accuracy(confusion))
