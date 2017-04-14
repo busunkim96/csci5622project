@@ -5,7 +5,7 @@ Bu Sun Kim
 Eirian Perkins
 
 How to open casia.pkl.gz:
-
+```python
 >>> import cPickle
 >>> import gzip
 >>> f = gzip.open("casia.pkl.gz", 'rb')
@@ -21,10 +21,10 @@ How to open casia.pkl.gz:
 >>> print y_test[400]
 二
 >>>
-
+```
 
 the data was loaded in like:
-
+```python
 >>> for sample in samples:
 ...     with open ("./test/tmp/" + sample) as f:
 ...             img_data = f.read()
@@ -52,3 +52,4 @@ the data was loaded in like:
 ...             y_test.append("九")
 ...     elif "十" in sample:
 ...             y_test.append("十")
+```
