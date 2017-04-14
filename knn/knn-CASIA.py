@@ -100,9 +100,10 @@ class Knearest:
         """
 
         # XXX TODO tuning parameters
-        self._kdtree = BallTree(x)
+        #self._kdtree = BallTree(x)
         # XXX try increasing p
         #self._kdtree = BallTree(x, metric="minkowski", p=3) # slower but works good.
+        self._kdtree = BallTree(x, metric="minkowski", p=5) 
         self._y = y
         self._k = k
 
