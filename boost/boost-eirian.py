@@ -10,6 +10,7 @@ import numpy
 from numpy import median
 from sklearn.neighbors import BallTree, NearestNeighbors, KDTree
 from sklearn.ensemble import AdaBoostClassifier
+from sklearn.tree import DecisionTreeClassifier, ExtraTreeClassifier
 #from sklearn.grid_search import GridSearchCV
 from skimage.color import rgb2gray
 from skimage import io
@@ -87,49 +88,6 @@ class Numbers:
         return y0
 
 
-def confusion_matrix(self, test_x, test_y):
-    """
-    Given a matrix of test examples and labels, compute the confusion
-    matrix for the current classifier.  Should return a dictionary of
-    dictionaries where d[ii][jj] is the number of times an example
-    with true label ii was labeled as jj.
-
-    :param test_x: Test data representation
-    :param test_y: Test data answers
-    """
-
-    d = defaultdict(dict)
-    data_index = 0
-    test_x = self.predict(test_x)
-    for xx, yy in zip(test_x, test_y):
-        try:
-            d[yy][test_x[xx]] += 1
-        except KeyError:
-            d[yy][test_x[xx]] = 1
-        data_index += 1
-        if data_index % 100 == 0:
-            #print("%i/%i for confusion matrix" % (data_index, len(test_x)))
-            pass
-    return d
-
-def accuracy(confusion_matrix):
-    """
-    Given a confusion matrix, compute the accuracy of the underlying classifier.
-    """
-
-    # You do not need to modify this function
-
-    total = 0
-    correct = 0
-    for ii in confusion_matrix:
-        total += sum(confusion_matrix[ii].values())
-        correct += confusion_matrix[ii].get(ii, 0)
-
-    if total:
-        return float(correct) / float(total)
-    else:
-        return 0.0
-
 def performKFold(data, k, limit=None):
     kf = StratifiedKFold(n_splits=5, shuffle=True)
     kf.get_n_splits(data.train_x)
@@ -141,12 +99,15 @@ def performKFold(data, k, limit=None):
 
     for train_index, test_index in kf.split(data.train_x, data.train_y):
         # XXX tuning parameters
-        ada = AdaBoostClassifier(base_estimator=None, n_estimators=50, learning_rate=1.0, algorithm="SAMME.R", random_state=None)
+        # TODO use 7 as max depth (or higher), use 5 for less time
+        # min_samples_leaf could be 2
+        #estimator = DecisionTreeClassifier(criterion='entropy', splitter='best', max_depth=5, min_samples_split=4, min_samples_leaf=4, random_state=None, presort=False)
+        # XXX use ExtraTreeClassifier for speed, test with DecisionTreeClassifier
+        estimator = ExtraTreeClassifier(criterion='entropy', splitter='best', max_depth=5, min_samples_split=4, min_samples_leaf=4, random_state=None)
+
+        ada = AdaBoostClassifier(base_estimator=estimator, n_estimators=600, learning_rate=1.5, algorithm="SAMME.R", random_state=None)
         ada = ada.fit(data.train_x[train_index], data.train_y[train_index])
 
-        #confusion = ada.confusion_matrix(data.train_x[test_index], data.train_y[test_index])
-
-        #correct = ada.accuracy(confusion)
         correct = ada.score(data.test_x, data.test_y)
         correctpc.append(correct)
         print "\t% right: ", correct
@@ -190,7 +151,10 @@ if __name__ == "__main__":
     else:
         print "!!! USING TEST DATA !!!" # not true for MNIST, enable test data when ready
         # XXX tuning parameters
-        ada = AdaBoostClassifier(base_estimator=None, n_estimators=50, learning_rate=1.0, algorithm="SAMME.R", random_state=None)
+        estimator = ExtraTreeClassifier(criterion='entropy', splitter='best', max_depth=5, min_samples_split=4, min_samples_leaf=4, random_state=None)
+
+        ada = AdaBoostClassifier(base_estimator=estimator, n_estimators=600, learning_rate=1.5, algorithm="SAMME.R", random_state=None)
+
 
         if args.limit > 0:
             print("Data limit: %i" % args.limit)
@@ -200,13 +164,5 @@ if __name__ == "__main__":
 
         print("Done loading data")
 
-        confusion = confusion_matrix(ada, data.test_x, data.test_y)
-        uIndex = 11
-        if args.MNIST:
-            uIndex = 10
-        print("\t" + "\t".join(str(x) for x in xrange(uIndex)))
-        print("".join(["-"] * 90))
-        for ii in xrange(uIndex):
-            print("%i:\t" % ii + "\t".join(str(confusion[ii].get(x, 0))
-                                       for x in xrange(uIndex)))
-        print("Accuracy: %f" % accuracy(confusion))
+        correct = ada.score(data.test_x, data.test_y)
+        print("Accuracy: %f" % correct)
