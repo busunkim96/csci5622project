@@ -9,6 +9,7 @@ import random
 import numpy
 from numpy import median
 from sklearn.neighbors import BallTree, NearestNeighbors, KDTree
+from sklearn.grid_search import GridSearchCV
 from skimage.color import rgb2gray
 from skimage import io
 
@@ -245,20 +246,29 @@ def performKFold(data, k, limit=None):
     kf.get_n_splits(data.train_x)
     correctpc = []
 
+    if limit > 0:
+        data.train_x = data.train_x[:args.limit]
+        data.train_y = data.train_y[:args.limit]
+
     for train_index, test_index in kf.split(data.train_x, data.train_y):
-        knn = None
-        if limit > 0:
-            knn = Knearest(data.train_x[:args.limit], data.train_y[:args.limit], k)
-        else:
-            knn = Knearest(data.train_x[train_index], data.train_y[train_index], k)
+        knn = Knearest(data.train_x[train_index], data.train_y[train_index], k)
 
         confusion = knn.confusion_matrix(data.train_x[test_index], data.train_y[test_index])
 
         correct = knn.accuracy(confusion)
         correctpc.append(correct)
-        print "% right: ", correct
+        print "\t% right: ", correct
 
     print "overall %: ", numpy.mean(correctpc)
+
+def performGridSearch(data, limit=None):
+    if limit > 0:
+        data.train_x = data.train_x[:args.limit]
+        data.train_y = data.train_y[:args.limit]
+
+    #TBD: add fit() and predict() methods
+
+    pass
         
 
 if __name__ == "__main__":
@@ -267,9 +277,9 @@ if __name__ == "__main__":
                         help="Number of nearest points to use")
     parser.add_argument('--limit', type=int, default=-1,
                         help="Restrict training to this many examples")
-    parser.add_argument("--kfold", help="use k-folds instead of making predictions",
-                        type=bool, default=False, required=False)
+    parser.add_argument("--kfold", help="use k-folds instead of making predictions", dest="kfold", action="store_true")
     parser.add_argument("--MNIST", help="use MNIST set", dest="MNIST", action="store_true")
+    parser.add_argument("--grid", help="use a GridSearchCV. This will ause the --kfold argument to be ignored.", dest="grid", action="store_true")
 
     args = parser.parse_args()
 
