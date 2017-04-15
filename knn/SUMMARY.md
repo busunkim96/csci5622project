@@ -1,3 +1,5 @@
+Contributor: Eirian Perkins
+
 BallTree using minkowski metric, p = 5. minkowski seemed to perform the best.
 
 eiriano> python knn-CASIA.py --kfold  --MNIST --limit 3500
