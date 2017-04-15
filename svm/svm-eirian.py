@@ -98,7 +98,14 @@ def performKFold(data, k, limit=None):
     for train_index, test_index in kf.split(data.train_x, data.train_y):
         # XXX tuning parameters
 
-        svm = SVC(C=1.0, kernel='rbf', degree=3, gamma='auto', coef0=0.0, shrinking=True, probability=False, tol=0.001, cache_size=200, class_weight=None, verbose=False, max_iter=-1, decision_function_shape=None, random_state=None)
+        # XXX coef0 w/poly kernel good grid search configurable
+        # XXX C also good for grid search
+        # XXX degree also, given the poly kernel
+
+        # TODO enable probability
+        # XXX XXX XXX below is some tuning for CASIA data. Should do tuning for MNIST specifically
+        # really need to do grid search to find best parameter values
+        svm = SVC(C=3.0, kernel='poly', degree=3, gamma='auto', coef0=2.0, shrinking=True, probability=False, tol=0.001, cache_size=400, class_weight=None, max_iter=-1, decision_function_shape="ovr")
 
         svm = svm.fit(data.train_x[train_index], data.train_y[train_index])
 
@@ -145,7 +152,7 @@ if __name__ == "__main__":
     else:
         print "!!! USING TEST DATA !!!" # not true for MNIST, enable test data when ready
         # XXX tuning parameters
-        svm = SVC(C=1.0, kernel='rbf', degree=3, gamma='auto', coef0=0.0, shrinking=True, probability=False, tol=0.001, cache_size=200, class_weight=None, verbose=False, max_iter=-1, decision_function_shape=None, random_state=None)
+        svm = SVC(C=3.0, kernel='poly', degree=3, gamma='auto', coef0=2.0, shrinking=True, probability=False, tol=0.001, cache_size=400, class_weight=None, max_iter=-1, decision_function_shape="ovr")
 
         if args.limit > 0:
             print("Data limit: %i" % args.limit)
