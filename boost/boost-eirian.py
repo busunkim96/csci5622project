@@ -101,9 +101,9 @@ def performKFold(data, k, limit=None):
         # XXX tuning parameters
         # TODO use 7 as max depth (or higher), use 5 for less time
         # min_samples_leaf could be 2
-        #estimator = DecisionTreeClassifier(criterion='entropy', splitter='best', max_depth=5, min_samples_split=4, min_samples_leaf=4, random_state=None, presort=False)
+        estimator = DecisionTreeClassifier(criterion='entropy', splitter='best', max_depth=5, min_samples_split=4, min_samples_leaf=4, random_state=None, presort=False)
         # XXX use ExtraTreeClassifier for speed, test with DecisionTreeClassifier
-        estimator = ExtraTreeClassifier(criterion='entropy', splitter='best', max_depth=5, min_samples_split=4, min_samples_leaf=4, random_state=None)
+        #estimator = ExtraTreeClassifier(criterion='entropy', splitter='best', max_depth=5, min_samples_split=4, min_samples_leaf=4, random_state=None)
 
         ada = AdaBoostClassifier(base_estimator=estimator, n_estimators=600, learning_rate=1.5, algorithm="SAMME.R", random_state=None)
         ada = ada.fit(data.train_x[train_index], data.train_y[train_index])
@@ -151,7 +151,8 @@ if __name__ == "__main__":
     else:
         print "!!! USING TEST DATA !!!" # not true for MNIST, enable test data when ready
         # XXX tuning parameters
-        estimator = ExtraTreeClassifier(criterion='entropy', splitter='best', max_depth=5, min_samples_split=4, min_samples_leaf=4, random_state=None)
+        estimator = DecisionTreeClassifier(criterion='entropy', splitter='best', max_depth=5, min_samples_split=4, min_samples_leaf=4, random_state=None, presort=False)
+        #estimator = ExtraTreeClassifier(criterion='entropy', splitter='best', max_depth=5, min_samples_split=4, min_samples_leaf=4, random_state=None)
 
         ada = AdaBoostClassifier(base_estimator=estimator, n_estimators=600, learning_rate=1.5, algorithm="SAMME.R", random_state=None)
 
