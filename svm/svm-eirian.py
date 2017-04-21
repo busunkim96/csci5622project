@@ -10,6 +10,7 @@ import numpy
 from numpy import median
 from sklearn.svm import SVC
 #from sklearn.grid_search import GridSearchCV
+from sklearn import preprocessing
 from skimage.color import rgb2gray
 from skimage import io
 
@@ -20,7 +21,7 @@ class Numbers:
     Class to store CASIA data
     """
 
-    def __init__(self, location, MNIST=False):
+    def __init__(self, location, MNIST=False, standardize=False):
         # You shouldn't have to modify this class, but you can if
         # you'd like.
 
@@ -34,6 +35,10 @@ class Numbers:
 
             self.train_x, self.train_y = train_set
             self.test_x, self.test_y = valid_set
+            if standardize:
+                scaler = preprocessing.StandardScaler().fit(self.train_x)
+                scaler.transform(self.train_x)
+                scaler.transform(self.test_x)
             f.close()
             return
 
@@ -56,6 +61,11 @@ class Numbers:
         self.train_x = d2x
         #self.train_y = numpy.array(self.train_y)
         self.train_y = self.convertYs(self.train_y)
+
+        if standardize:
+            scaler = preprocessing.StandardScaler().fit(self.train_x)
+            scaler.transform(self.train_x)
+            scaler.transform(self.test_x)
 
     def convertYs(self, y):
         y0 = numpy.zeros(len(y))
@@ -134,17 +144,18 @@ if __name__ == "__main__":
     parser.add_argument("--kfold", help="use k-folds instead of making predictions", dest="kfold", action="store_true")
     parser.add_argument("--MNIST", help="use MNIST set", dest="MNIST", action="store_true")
     parser.add_argument("--grid", help="use a GridSearchCV. This will ause the --kfold argument to be ignored.", dest="grid", action="store_true")
-
+    parser.add_argument("--standardize", help="standardize features using sklearn preprocessing", dest="standardize", action="store_true")
     args = parser.parse_args()
 
     data = None
     if args.MNIST:
         print "Using MNIST data"
-        data = Numbers("../mnist.pkl.gz", MNIST=True)
+        data = Numbers("../mnist.pkl.gz", MNIST=True, standardize=args.standardize)
     else:
         print "Using CASIA data"
-        data = Numbers("../casia.pkl.gz")
+        data = Numbers("../casia.pkl.gz", standardize=args.standardize)
     knn = None
+
 
     if args.kfold:
         data = performKFold(data, args.k, args.limit)
