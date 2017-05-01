@@ -27,3 +27,26 @@ Using MNIST data
 Data limit: 3500
 Done loading data
 Accuracy: 0.923100
+
+
+
+######
+With preprocessing
+
+eiriano> python svm-eirian.py --kfold --limit 3500 --MNIST
+Using MNIST data
+% right:  0.9285
+% right:  0.9258
+% right:  0.9228
+% right:  0.925
+% right:  0.924
+overall %:  0.92522
+
+eiriano> python svm-CASIA.py --kfold --limit 3500
+Using CASIA data
+% right:  0.949836423119
+% right:  0.955288985823
+% right:  0.955288985823
+% right:  0.961832061069
+% right:  0.95092693566
+overall %:  0.954634678299

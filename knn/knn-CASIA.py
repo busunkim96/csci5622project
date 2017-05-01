@@ -14,6 +14,7 @@ from skimage.color import rgb2gray
 from skimage import io
 
 from sklearn.model_selection import KFold, StratifiedKFold
+from sklearn import preprocessing
 
 class Numbers:
     """
@@ -33,8 +34,10 @@ class Numbers:
             train_set, valid_set, test_set = cPickle.load(f)
 
             self.train_x, self.train_y = train_set
-            self.test_x, self.test_y = valid_set
+            #self.test_x, self.test_y = valid_set
+            self.test_x, self.test_y = test_set
             f.close()
+            self.e_scale()
             return
 
         # CASIA otherwise
@@ -56,6 +59,22 @@ class Numbers:
         self.train_x = d2x
         #self.train_y = numpy.array(self.train_y)
         self.train_y = self.convertYs(self.train_y)
+        self.e_scale()
+
+    def e_scale(self):
+        pass
+        #self.train_x = preprocessing.scale(self.train_x, with_mean=False)
+        #self.test_x = preprocessing.scale(self.test_x, with_mean=False)
+
+        '''
+        #rs = preprocessing.OneHotEncoder() # nah
+        rs = preprocessing.Imputer()
+        #rs = preprocessing.MinMaxScaler() # nah
+        #rs = preprocessing.MaxAbsScaler() # nah
+        #rs = preprocessing.Normalizer() # no
+        self.train_x = rs.fit_transform(self.train_x, self.train_y)
+        self.test_x = rs.transform(self.test_x)
+        '''
 
     def convertYs(self, y):
         y0 = numpy.zeros(len(y))

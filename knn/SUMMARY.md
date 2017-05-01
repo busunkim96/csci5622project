@@ -38,3 +38,14 @@ eiriano> python knn-CASIA.py --limit 3500 --MNIST
         8:    4    19    4    28    5    24    7    13    881    24
         9:    3    3    2    11    19    8    1    26    1    887
         Accuracy: 0.938300
+
+
+# with preprocessing
+
+Using CASIA data
+>---% right:  0.906382978723
+>---% right:  0.918687589158
+>---% right:  0.917142857143
+>---% right:  0.908309455587
+>---% right:  0.912356321839
+overall %:  0.91257584049

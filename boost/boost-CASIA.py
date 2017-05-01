@@ -8,12 +8,15 @@ import sys
 import random
 import numpy
 from numpy import median
-from sklearn.svm import SVC
+from sklearn.neighbors import BallTree, NearestNeighbors, KDTree
+from sklearn.ensemble import AdaBoostClassifier, AdaBoostRegressor
+from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor, ExtraTreeClassifier, ExtraTreeRegressor
 #from sklearn.grid_search import GridSearchCV
 from skimage.color import rgb2gray
 from skimage import io
 
 from sklearn.model_selection import KFold, StratifiedKFold
+
 from sklearn import preprocessing
 
 class Numbers:
@@ -34,8 +37,7 @@ class Numbers:
             train_set, valid_set, test_set = cPickle.load(f)
 
             self.train_x, self.train_y = train_set
-            #self.test_x, self.test_y = valid_set
-            self.test_x, self.test_y = test_set
+            self.test_x, self.test_y = valid_set
             f.close()
             self.e_scale()
             return
@@ -59,28 +61,37 @@ class Numbers:
         self.train_x = d2x
         #self.train_y = numpy.array(self.train_y)
         self.train_y = self.convertYs(self.train_y)
-        #self.e_scale()
+        self.e_scale()
 
     def e_scale(self):
 
-        # this one doesn't seem to make any statistical difference
-        '''
-        rs = preprocessing.Imputer(strategy='median', copy=False)
-        self.train_x = rs.fit_transform(self.train_x, self.train_y)
-        self.test_x = rs.transform(self.test_x)
-        '''
-
-        # so, preprocessing schemes are quite different for the data sets
-        rs = preprocessing.StandardScaler()
-        # polynomial features *might* perform better than OneHotEncoding, but my laptop can't handle it
-        ####rs = preprocessing.PolynomialFeatures()
+        #rs = preprocessing.Imputer()
+        rs = preprocessing.OneHotEncoder()
         self.train_x = rs.fit_transform(self.train_x, self.train_y)
         self.test_x = rs.transform(self.test_x)
 
+        #self.train_x = preprocessing.scale(self.train_x, with_mean=False)
+        #self.test_x = preprocessing.scale(self.test_x, with_mean=False)
+
         '''
-        rs = preprocessing.KernelCenterer()
-        self.train_x = rs.fit_transform(self.train_x.toarray(), self.train_y)
-        self.test_x = rs.transform(self.test_x.toarray())
+        self.train_x = preprocessing.normalize(self.train_x).reshape(1,-1)
+        self.test_x = preprocessing.normalize(self.test_x).reshape(1,-1)
+        '''
+
+        '''
+        nx, ny = self.train_x.shape
+        self.train_x = preprocessing.normalize(self.train_x)
+        self.train_x.reshape(nx, ny)
+
+        nx, ny = self.test_x.shape
+        self.test_x = preprocessing.normalize(self.test_x)
+        self.test_x.reshape(nx, ny)
+        '''
+
+
+        '''
+        self.train_x = [ preprocessing.normalize(X) for X in self.train_x ]
+        self.test_x = [ preprocessing.normalize(X) for X in self.test_x ]
         '''
 
     def convertYs(self, y):
@@ -123,21 +134,23 @@ def performKFold(data, k, limit=None):
 
     for train_index, test_index in kf.split(data.train_x, data.train_y):
         # XXX tuning parameters
+        # TODO use 7 as max depth (or higher), use 5 for less time
+        # min_samples_leaf could be 2
+        estimator = DecisionTreeClassifier(criterion='entropy', splitter='best', max_depth=5, min_samples_split=4, min_samples_leaf=4, random_state=None, presort=False)
 
-        # XXX coef0 w/poly kernel good grid search configurable
-        # XXX C also good for grid search
-        # XXX degree also, given the poly kernel
+        '''
+        estimator = DecisionTreeRegressor(splitter='best', max_depth=5, min_samples_split=4, min_samples_leaf=4, random_state=None, presort=False)
+        '''
+        # XXX use ExtraTreeClassifier for speed, test with DecisionTreeClassifier
+        #estimator = ExtraTreeClassifier(criterion='entropy', splitter='best', max_depth=5, min_samples_split=4, min_samples_leaf=4, random_state=None)
 
-        # TODO enable probability
-        # XXX XXX XXX below is some tuning for CASIA data. Should do tuning for MNIST specifically
-        # really need to do grid search to find best parameter values
-        svm = SVC(C=3.0, kernel='poly', degree=3, gamma='auto', coef0=2.0, shrinking=True, probability=False, tol=0.001, cache_size=400, class_weight=None, max_iter=-1, decision_function_shape="ovr")
-        #svm = SVC(C=3.0, kernel='poly', degree=3, gamma='auto', coef0=2.0, shrinking=True, probability=False, tol=0.001, cache_size=400, class_weight="balanced", max_iter=-1, decision_function_shape="ovr")
-        #svm = SVC(kernel='linear', decision_function_shape="ovo", C=3.0)
+        ada = AdaBoostClassifier(base_estimator=estimator, n_estimators=600, learning_rate=1.5, algorithm="SAMME.R", random_state=None)
+        '''
+        ada = AdaBoostRegressor(base_estimator=estimator, n_estimators=600, learning_rate=1.5, random_state=None)
+        '''
+        ada = ada.fit(data.train_x[train_index], data.train_y[train_index])
 
-        svm = svm.fit(data.train_x[train_index], data.train_y[train_index])
-
-        correct = svm.score(data.test_x, data.test_y)
+        correct = ada.score(data.test_x, data.test_y)
         correctpc.append(correct)
         print "\t% right: ", correct
 
@@ -174,21 +187,26 @@ if __name__ == "__main__":
         data = Numbers("../casia.pkl.gz")
     knn = None
 
+
     if args.kfold:
         data = performKFold(data, args.k, args.limit)
 
     else:
         print "!!! USING TEST DATA !!!" # not true for MNIST, enable test data when ready
         # XXX tuning parameters
-        svm = SVC(C=3.0, kernel='poly', degree=3, gamma='auto', coef0=2.0, shrinking=True, probability=False, tol=0.001, cache_size=400, class_weight=None, max_iter=-1, decision_function_shape="ovr")
+        estimator = DecisionTreeClassifier(criterion='entropy', splitter='best', max_depth=5, min_samples_split=4, min_samples_leaf=4, random_state=None, presort=False)
+        #estimator = ExtraTreeClassifier(criterion='entropy', splitter='best', max_depth=5, min_samples_split=4, min_samples_leaf=4, random_state=None)
+
+        ada = AdaBoostClassifier(base_estimator=estimator, n_estimators=600, learning_rate=1.5, algorithm="SAMME.R", random_state=None)
+
 
         if args.limit > 0:
             print("Data limit: %i" % args.limit)
-            svm = svm.fit(data.train_x[:args.limit], data.train_y[:args.limit])
+            ada = ada.fit(data.train_x[:args.limit], data.train_y[:args.limit])
         else:
-            svm = svm.fit(data.train_x, data.train_y)
+            ada = ada.fit(data.train_x, data.train_y)
 
         print("Done loading data")
 
-        correct = svm.score(data.test_x, data.test_y)
+        correct = ada.score(data.test_x, data.test_y)
         print("Accuracy: %f" % correct)

@@ -24,3 +24,25 @@ Using CASIA data
 % right:  0.906215921483
 % right:  0.884405670665
 overall %:  0.893347873501
+
+
+#######
+With preprocessing
+
+eiriano> python boost-eirian.py --limit 3500 --kfold
+Using CASIA data
+% right:  0.932388222465
+% right:  0.935659760087
+% right:  0.924754634678
+% right:  0.922573609597
+% right:  0.934569247546
+overall %:  0.929989094875
+
+eiriano> fg
+python boost-eirian.py --limit 3500 --kfold --MNIST
+% right:  0.909
+% right:  0.909
+% right:  0.9107
+% right:  0.9114
+% right:  0.9092
+overall %:  0.90986

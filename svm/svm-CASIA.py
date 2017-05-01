@@ -34,8 +34,7 @@ class Numbers:
             train_set, valid_set, test_set = cPickle.load(f)
 
             self.train_x, self.train_y = train_set
-            #self.test_x, self.test_y = valid_set
-            self.test_x, self.test_y = test_set
+            self.test_x, self.test_y = valid_set
             f.close()
             self.e_scale()
             return
@@ -59,7 +58,7 @@ class Numbers:
         self.train_x = d2x
         #self.train_y = numpy.array(self.train_y)
         self.train_y = self.convertYs(self.train_y)
-        #self.e_scale()
+        self.e_scale()
 
     def e_scale(self):
 
@@ -70,8 +69,9 @@ class Numbers:
         self.test_x = rs.transform(self.test_x)
         '''
 
-        # so, preprocessing schemes are quite different for the data sets
-        rs = preprocessing.StandardScaler()
+        # XXX this does very poorly for MNIST (drop to 10%)
+        # so, preprocessing schemes are quite different
+        rs = preprocessing.OneHotEncoder()
         # polynomial features *might* perform better than OneHotEncoding, but my laptop can't handle it
         ####rs = preprocessing.PolynomialFeatures()
         self.train_x = rs.fit_transform(self.train_x, self.train_y)
@@ -132,8 +132,6 @@ def performKFold(data, k, limit=None):
         # XXX XXX XXX below is some tuning for CASIA data. Should do tuning for MNIST specifically
         # really need to do grid search to find best parameter values
         svm = SVC(C=3.0, kernel='poly', degree=3, gamma='auto', coef0=2.0, shrinking=True, probability=False, tol=0.001, cache_size=400, class_weight=None, max_iter=-1, decision_function_shape="ovr")
-        #svm = SVC(C=3.0, kernel='poly', degree=3, gamma='auto', coef0=2.0, shrinking=True, probability=False, tol=0.001, cache_size=400, class_weight="balanced", max_iter=-1, decision_function_shape="ovr")
-        #svm = SVC(kernel='linear', decision_function_shape="ovo", C=3.0)
 
         svm = svm.fit(data.train_x[train_index], data.train_y[train_index])
 

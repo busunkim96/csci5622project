@@ -9,13 +9,15 @@ import random
 import numpy
 from numpy import median
 from sklearn.neighbors import BallTree, NearestNeighbors, KDTree
-from sklearn.ensemble import AdaBoostClassifier
-from sklearn.tree import DecisionTreeClassifier, ExtraTreeClassifier
+from sklearn.ensemble import AdaBoostClassifier, AdaBoostRegressor
+from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor, ExtraTreeClassifier, ExtraTreeRegressor
 #from sklearn.grid_search import GridSearchCV
 from skimage.color import rgb2gray
 from skimage import io
 
 from sklearn.model_selection import KFold, StratifiedKFold
+
+from sklearn import preprocessing
 
 class Numbers:
     """
@@ -35,8 +37,10 @@ class Numbers:
             train_set, valid_set, test_set = cPickle.load(f)
 
             self.train_x, self.train_y = train_set
-            self.test_x, self.test_y = valid_set
+            #self.test_x, self.test_y = valid_set
+            self.test_x, self.test_y = test_set
             f.close()
+            self.e_scale()
             return
 
         # CASIA otherwise
@@ -58,6 +62,39 @@ class Numbers:
         self.train_x = d2x
         #self.train_y = numpy.array(self.train_y)
         self.train_y = self.convertYs(self.train_y)
+        self.e_scale()
+
+    def e_scale(self):
+
+        #rs = preprocessing.Imputer()
+        #rs = preprocessing.StandardScaler() # eh
+        rs = preprocessing.StandardScaler()
+        self.train_x = rs.fit_transform(self.train_x, self.train_y)
+        self.test_x = rs.transform(self.test_x)
+
+        #self.train_x = preprocessing.scale(self.train_x, with_mean=False)
+        #self.test_x = preprocessing.scale(self.test_x, with_mean=False)
+
+        '''
+        self.train_x = preprocessing.normalize(self.train_x).reshape(1,-1)
+        self.test_x = preprocessing.normalize(self.test_x).reshape(1,-1)
+        '''
+
+        '''
+        nx, ny = self.train_x.shape
+        self.train_x = preprocessing.normalize(self.train_x)
+        self.train_x.reshape(nx, ny)
+
+        nx, ny = self.test_x.shape
+        self.test_x = preprocessing.normalize(self.test_x)
+        self.test_x.reshape(nx, ny)
+        '''
+
+
+        '''
+        self.train_x = [ preprocessing.normalize(X) for X in self.train_x ]
+        self.test_x = [ preprocessing.normalize(X) for X in self.test_x ]
+        '''
 
     def convertYs(self, y):
         y0 = numpy.zeros(len(y))
@@ -102,10 +139,17 @@ def performKFold(data, k, limit=None):
         # TODO use 7 as max depth (or higher), use 5 for less time
         # min_samples_leaf could be 2
         estimator = DecisionTreeClassifier(criterion='entropy', splitter='best', max_depth=5, min_samples_split=4, min_samples_leaf=4, random_state=None, presort=False)
+
+        '''
+        estimator = DecisionTreeRegressor(splitter='best', max_depth=5, min_samples_split=4, min_samples_leaf=4, random_state=None, presort=False)
+        '''
         # XXX use ExtraTreeClassifier for speed, test with DecisionTreeClassifier
         #estimator = ExtraTreeClassifier(criterion='entropy', splitter='best', max_depth=5, min_samples_split=4, min_samples_leaf=4, random_state=None)
 
         ada = AdaBoostClassifier(base_estimator=estimator, n_estimators=600, learning_rate=1.5, algorithm="SAMME.R", random_state=None)
+        '''
+        ada = AdaBoostRegressor(base_estimator=estimator, n_estimators=600, learning_rate=1.5, random_state=None)
+        '''
         ada = ada.fit(data.train_x[train_index], data.train_y[train_index])
 
         correct = ada.score(data.test_x, data.test_y)
@@ -144,6 +188,7 @@ if __name__ == "__main__":
         print "Using CASIA data"
         data = Numbers("../casia.pkl.gz")
     knn = None
+
 
     if args.kfold:
         data = performKFold(data, args.k, args.limit)
