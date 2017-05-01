@@ -25,7 +25,6 @@ I think these results for CASIA (above) indicate some over fitting
 
 
 eiriano> python knn-CASIA.py --limit 4500 --MNIST
-  /Users/eiriano/anaconda2/lib/python2.7/site-packages/sklearn/grid_search.py:43: DeprecationWarning: This module was deprecated in version 0.18 in favor of the model_selection module into which all the refactored classes and functions are moved. This module will be removed in 0.20.
     DeprecationWarning)
     Using MNIST data
     !!! USING TEST DATA !!!
@@ -44,3 +43,22 @@ eiriano> python knn-CASIA.py --limit 4500 --MNIST
     8:  12  3   6   13  9   19  8   10  876 18
     9:  2   5   2   8   22  6   2   18  10  934
     Accuracy: 0.940600
+
+eiriano> python knn-CASIA.py  --MNIST
+    DeprecationWarning)
+    Using MNIST data
+    !!! USING TEST DATA !!!
+    Done loading data
+    0   1   2   3   4   5   6   7   8   9
+    ------------------------------------------------------------------------------------------
+    0:  974 1   1   0   0   0   3   1   0   0
+    1:  0   1131    2   1   0   0   0   0   0   1
+    2:  6   4   1001    3   3   0   0   13  2   0
+    3:  0   0   3   978 1   13  0   7   5   3
+    4:  1   3   0   0   953 0   4   2   2   17
+    5:  3   0   0   8   2   863 7   1   3   5
+    6:  4   2   0   0   3   4   945 0   0   0
+    7:  0   14  6   0   2   1   0   996 0   9
+    8:  4   0   3   12  6   11  9   5   919 5
+    9:  3   4   4   5   7   5   1   9   3   968
+    Accuracy: 0.972800
